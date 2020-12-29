@@ -1,5 +1,5 @@
 # このレポジトリについて
-このレポジトリでは、TransformerをTensorFlow 1系を用いて手作りされた @halhorn さんのコードに少し手を加えて、TensorFlow 2系で動作するコードに書き換えた [コード](https://github.com/tropicbird/deep_dialog_tutorial/tree/master/deepdialog/transformer) を公開しています。なお、あくまで2系でもコードが動くようにしただけですので、必ずしも2系で推奨されている記述形式に従っている訳ではありません。 @halhorn さんの元コードは以下のリンクでご参照下さい。Transformerを学習する上で非常に重宝しました。
+このレポジトリでは、TransformerをTensorFlow 1系を用いて手作りされた [@halhorn](https://github.com/halhorn) さんのコードに少し手を加えて、TensorFlow 2系で動作するコードに書き換えた [コード](https://github.com/tropicbird/deep_dialog_tutorial/tree/master/deepdialog/transformer) を公開しています。なお、あくまで2系でもコードが動くようにしただけですので、必ずしも2系で推奨されている記述形式に従っている訳ではありません。 [@halhorn](https://github.com/halhorn) さんの元コードは以下のリンクでご参照下さい。Transformerを学習する上で非常に重宝しました。
 
 ## 元コード
 - [GitHub (※このレポジトリのフォーク元)](https://github.com/halhorn/deep_dialog_tutorial)

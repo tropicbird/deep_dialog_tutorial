@@ -1,5 +1,5 @@
-#Transformer with TensorFlow 2.X
- @halhorn さんが作成されたTransformerのコードに少し手を加えて、TensorFlow 2系で動作するコードに書き換えたコードの本体部分です。Jupyter 上で deepdialog/transformer/training.ipynb を開いてください。TensorFlow 2系でも訓練が進むはずです。(推奨環境：Python 3.7, TensorFlow 2.1.0)
+# Transformer with TensorFlow 2.X
+[@halhorn](https://github.com/halhorn) さんが作成されたTransformerのコードに少し手を加えて、TensorFlow 2系で動作するコードに書き換えたコードの本体部分です。Jupyter 上で deepdialog/transformer/training.ipynb を開いてください。TensorFlow 2系でも訓練が進むはずです。(※動作確認済みの環境：Python 3.7, TensorFlow 2.1.0)
 <!--
 # Transformer
 この記事では2018年現在 DeepLearning における自然言語処理のデファクトスタンダードとなりつつある Transformer の tf.keras 実装です。
