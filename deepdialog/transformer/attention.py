@@ -27,9 +27,9 @@ class MultiheadAttention(tf.keras.models.Model):
         :param dropout_rate: ドロップアウトする確率
         '''
         super().__init__(*args, **kwargs)
-        self.hidden_dim = hidden_dim
-        self.head_num = head_num
-        self.dropout_rate = dropout_rate
+        self.hidden_dim = hidden_dim #512
+        self.head_num = head_num #8
+        self.dropout_rate = dropout_rate #0.1
 
         self.q_dense_layer = tf.keras.layers.Dense(hidden_dim, use_bias=False, name='q_dense_layer')
         self.k_dense_layer = tf.keras.layers.Dense(hidden_dim, use_bias=False, name='k_dense_layer')
@@ -66,7 +66,12 @@ class MultiheadAttention(tf.keras.models.Model):
 
         # ここで q と k の内積を取ることで、query と key の関連度のようなものを計算します。
         logit = tf.matmul(q, k, transpose_b=True)  # [batch_size, head_num, q_length, k_length]
-        logit += tf.to_float(attention_mask) * input.dtype.min  # mask は pad 部分などが1, 他は0
+        # Check!!!!
+        # !!!mask したい要素を -∞ に値を書き換える!!!
+        # logit += tf.to_float(attention_mask) * input.dtype.min  # mask は pad 部分などが1, 他は0
+        logit += tf.cast(attention_mask,dtype=tf.float32) * input.dtype.min  # mask は pad 部分などが1, 他は0
+        # これによってMaskがTrueの部分はinput.dtype.min ≒ マイナス無限大な値になります。
+
 
         # softmax を取ることで正規化します
         attention_weight = tf.nn.softmax(logit, name='attention_weight')
@@ -75,6 +80,10 @@ class MultiheadAttention(tf.keras.models.Model):
         # 重みに従って value から情報を引いてきます
         attention_output = tf.matmul(attention_weight, v)  # [batch_size, head_num, q_length, hidden_dim/head_num]
         attention_output = self._combine_head(attention_output)  # [batch_size, q_length, hidden_dim]
+
+        #得られたベクトルを Dense で変換したものがこのレイヤー出力になる。
+        # ベクトル（attention_output）が3次元（[batch_size, q_length, hidden_dim]）の場合、
+        # どうやってDenseされるか不明。
         return self.output_dense_layer(attention_output)
 
     def _split_head(self, x: tf.Tensor) -> tf.Tensor:
@@ -116,7 +125,7 @@ class SelfAttention(MultiheadAttention):
     ) -> tf.Tensor:
         return super().call(
             input=input,
-            memory=input,
+            memory=input, #
             attention_mask=attention_mask,
             training=training,
         )

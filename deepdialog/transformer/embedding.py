@@ -11,20 +11,22 @@ class TokenEmbedding(tf.keras.layers.Layer):
     def __init__(self, vocab_size: int, embedding_dim: int, dtype=tf.float32, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.vocab_size = vocab_size
-        self.embedding_dim = embedding_dim
+        self.embedding_dim = embedding_dim #embedding_dim<-hidden_dim:512
         self.dtype_ = dtype
 
     def build(self, input_shape: tf.TensorShape) -> None:
         self.lookup_table = self.add_variable(
             name='token_embedding',
-            shape=[self.vocab_size, self.embedding_dim],
+            shape=[self.vocab_size, self.embedding_dim], #[8000,512]
             dtype=self.dtype_,
             initializer=tf.random_normal_initializer(0., self.embedding_dim ** -0.5),
         )
         super().build(input_shape)
 
     def call(self, input: tf.Tensor) -> tf.Tensor:
-        mask = tf.to_float(tf.not_equal(input, PAD_ID))
+        # Check!!!!
+        # mask = tf.to_float(tf.not_equal(input, PAD_ID))
+        mask = tf.cast(tf.not_equal(input, PAD_ID), dtype=tf.float32)
         embedding = tf.nn.embedding_lookup(self.lookup_table, input)
         embedding *= tf.expand_dims(mask, -1)  # 元々 PAD だった部分を0にする
         return embedding * self.embedding_dim ** 0.5

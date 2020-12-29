@@ -41,9 +41,10 @@ class ResidualNormalizationWrapper(tf.keras.models.Model):
 
     def call(self, input: tf.Tensor, training: bool, *args, **kwargs) -> tf.Tensor:
         tensor = self.layer_normalization(input)
-        tensor = self.layer(tensor, training=training, *args, **kwargs)
+        #↓ここでモデル(SelfAttentionやMultiheadAttentionのcall)が実行されている？
+        tensor = self.layer(tensor, training=training, *args, **kwargs)#このlayerはattention_layerかffn_layer
         tensor = self.dropout_layer(tensor, training=training)
-        return input + tensor
+        return input + tensor #これが残差結合。入力に
 
 
 class LayerNormalization(tf.keras.layers.Layer):
@@ -62,6 +63,8 @@ class LayerNormalization(tf.keras.layers.Layer):
     def call(self, x: tf.Tensor, epsilon: float = 1e-6) -> tf.Tensor:
         mean = tf.reduce_mean(x, axis=[-1], keepdims=True)
         variance = tf.reduce_mean(tf.square(x - mean), axis=[-1], keepdims=True)
-        norm_x = (x - mean) * tf.rsqrt(variance + epsilon)
+        # Check!!!!
+        # norm_x = (x - mean) * tf.rsqrt(variance + epsilon)
+        norm_x = (x - mean) * tf.math.rsqrt(variance + epsilon)
 
         return norm_x * self.scale + self.bias

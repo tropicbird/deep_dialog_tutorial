@@ -23,7 +23,7 @@ class Transformer(tf.keras.models.Model):
             *args,
             **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)#親クラスのメソッド（__init__）の引き継ぎ。
         self.vocab_size = vocab_size
         self.hopping_num = hopping_num
         self.head_num = head_num
@@ -52,39 +52,65 @@ class Transformer(tf.keras.models.Model):
         '''
         学習/推論のためのグラフを構築します。
         '''
-        with tf.name_scope(name):
-            self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
-            # [batch_size, max_length]
-            self.encoder_input = tf.placeholder(dtype=tf.int32, shape=[None, None], name='encoder_input')
-            # [batch_size]
-            self.decoder_input = tf.placeholder(dtype=tf.int32, shape=[None, None], name='decoder_input')
 
+        # 複数のファイルを同時に開いて、
+        # 処理を行いたい場合などはwith構文をネストする事が出来ます。
+        with tf.name_scope(name):
+            #self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
+            self.is_training = tf.compat.v1.placeholder(dtype=tf.bool, name='is_training')
+            # self.is_training = tf.keras.Input(dtype=tf.bool, shape=(), name='is_training')
+
+            # [batch_size, max_length]
+            #self.encoder_input = tf.placeholder(dtype=tf.int32, shape=[None, None], name='encoder_input')
+            self.encoder_input = tf.compat.v1.placeholder(dtype=tf.int32, shape=[None, None], name='encoder_input')
+            # self.encoder_input = tf.keras.Input(dtype=tf.int32, shape=(2,), name='encoder_input')
+
+            # [batch_size]
+            #self.decoder_input = tf.placeholder(dtype=tf.int32, shape=[None, None], name='decoder_input')
+            self.decoder_input = tf.compat.v1.placeholder(dtype=tf.int32, shape=[None, None], name='decoder_input')
+            # self.decoder_input = tf.keras.Input(dtype=tf.int32, shape=(2,), name='decoder_input')
+
+
+            #logitはdecoder_output!!!
             logit = self.call(
-                encoder_input=self.encoder_input,
-                decoder_input=self.decoder_input[:, :-1],  # 入力は EOS を含めない
+                encoder_input=self.encoder_input, #encoder_inputはshape=[None, None]のint32
+                decoder_input=self.decoder_input[:, :-1],  #入力は EOS を含めない?
                 training=self.is_training,
             )
-            decoder_target = self.decoder_input[:, 1:]  # 出力は BOS を含めない
+            decoder_target = self.decoder_input[:, 1:]  #教師データの出力は BOS を含めない
 
+            # logitは [batch_size, length, vocab_size]なので、
+            # softmaxを使うことで各tokenの確率を求めることができる。
             self.prediction = tf.nn.softmax(logit, name='prediction')
 
             with tf.name_scope('metrics'):
                 xentropy, weights = padded_cross_entropy_loss(
                     logit, decoder_target, smoothing=0.05, vocab_size=self.vocab_size)
+                #tf.reduce_sum(tf.Tensor)は引数の数字を全て足した値を返す。
                 self.loss = tf.identity(tf.reduce_sum(xentropy) / tf.reduce_sum(weights), name='loss')
 
                 accuracies, weights = padded_accuracy(logit, decoder_target)
                 self.acc = tf.identity(tf.reduce_sum(accuracies) / tf.reduce_sum(weights), name='acc')
 
     def call(self, encoder_input: tf.Tensor, decoder_input: tf.Tensor, training: bool) -> tf.Tensor:
-        enc_attention_mask = self._create_enc_attention_mask(encoder_input)
+
+        #Check!!!!
+        print(encoder_input)
+
+        #enc_attention_maskは
+        enc_attention_mask = self._create_enc_attention_mask(encoder_input) #encoder_inputはshape=[None, None]のint32
+
+        # dec_self_attention_maskは
         dec_self_attention_mask = self._create_dec_self_attention_mask(decoder_input)
 
+
+        #ここでself.encoder()に引数を入れることで、Encoderクラスのcallが発動する。多分
         encoder_output = self.encoder(
             encoder_input,
             self_attention_mask=enc_attention_mask,
             training=training,
         )
+        # ここでself.decoder()に引数を入れることで、Decoderクラスのcallが発動する。多分
         decoder_output = self.decoder(
             decoder_input,
             encoder_output,
@@ -108,7 +134,11 @@ class Transformer(tf.keras.models.Model):
             pad_array = tf.reshape(pad_array, [batch_size, 1, 1, length])
 
             autoregression_array = tf.logical_not(
-                tf.matrix_band_part(tf.ones([length, length], dtype=tf.bool), -1, 0))  # 下三角が False
+                # Check!!!
+                # tf.matrix_band_part(tf.ones([length, length], dtype=tf.bool), -1, 0))  # 下三角が False
+                tf.linalg.band_part(tf.ones([length, length], dtype=tf.bool), -1, 0))  # 下三角が False
+
+
             autoregression_array = tf.reshape(autoregression_array, [1, 1, length, length])
 
             return tf.logical_or(pad_array, autoregression_array)
@@ -135,14 +165,23 @@ class Encoder(tf.keras.models.Model):
         self.hidden_dim = hidden_dim
         self.dropout_rate = dropout_rate
 
-        self.token_embedding = TokenEmbedding(vocab_size, hidden_dim)
+        #　↓↓この時点では空
+        self.token_embedding = TokenEmbedding(vocab_size, hidden_dim) #トークン列を Embedded Vector 列に変換, vocab_size:8000, hidden_dim:512
         self.add_position_embedding = AddPositionalEncoding()
         self.input_dropout_layer = tf.keras.layers.Dropout(dropout_rate)
-
         self.attention_block_list: List[List[tf.keras.models.Model]] = []
+        # ↑↑この時点では空
+
+        #サンプルでは4回hoppingする。
         for _ in range(hopping_num):
             attention_layer = SelfAttention(hidden_dim, head_num, dropout_rate, name='self_attention')
             ffn_layer = FeedForwardNetwork(hidden_dim, dropout_rate, name='ffn')
+            #空のリストであるself.attention_block_listに
+            #与えられたレイヤー(Multihead Attention layerとFFN)に対する、
+            #下記のノーマライゼーションを行った結果を４つ（hopping=4のため）追加する。
+            #- Layer Normalization
+            #- Dropout
+            #- Residual Connection
             self.attention_block_list.append([
                 ResidualNormalizationWrapper(attention_layer, dropout_rate, name='self_attention_wrapper'),
                 ResidualNormalizationWrapper(ffn_layer, dropout_rate, name='ffn_wrapper'),
@@ -213,7 +252,7 @@ class Decoder(tf.keras.models.Model):
             ])
         self.output_normalization = LayerNormalization()
         # 注：本家ではここは TokenEmbedding の重みを転地したものを使っている
-        self.output_dense_layer = tf.keras.layers.Dense(vocab_size, use_bias=False)
+        self.output_dense_layer = tf.keras.layers.Dense(vocab_size, use_bias=False)#softmaxにしたときに各単語の確率を求めるため？
 
     def call(
             self,
@@ -239,7 +278,7 @@ class Decoder(tf.keras.models.Model):
             self_attention_layer, enc_dec_attention_layer, ffn_layer = tuple(layers)
             with tf.name_scope(f'hopping_{i}'):
                 query = self_attention_layer(query, attention_mask=self_attention_mask, training=training)
-                query = enc_dec_attention_layer(query, memory=encoder_output,
+                query = enc_dec_attention_layer(query, memory=encoder_output, #queryはencoder_outputの1ズレ
                                                 attention_mask=enc_dec_attention_mask, training=training)
                 query = ffn_layer(query, training=training)
 
