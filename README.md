@@ -1,3 +1,15 @@
+# このレポジトリについて
+このレポジトリでは、TransformerをTensorFlow 1系を用いて手作りされた@halhorn さんのコードに少し手を加えて、TensorFlow 2系で動作するコードに書き換えたコードを公開しています。@halhorn さんの元コードは以下のリンクでご参照下さい。Transformerを学習する上で非常に重宝しました。
+
+## @halhorn さんの元コード
+- [GitHub (※このレポジトリのフォーク元)](https://github.com/halhorn/deep_dialog_tutorial)
+- [Qiita記事](https://qiita.com/halhorn/items/c91497522be27bde17ce)
+
+## 動作確認済の環境
+- Python 3.7
+- tensorflow-gpu 2.1.0
+
+<!-- 
 # Deep Dialog Tutorial
 会話モデルネタでいろいろ追加していくリポジトリ
 
@@ -37,3 +49,4 @@ RNN の言語モデル。
 # or
 ./test/run deepdialog/transformer/transformer.py
 ```
+--> 
